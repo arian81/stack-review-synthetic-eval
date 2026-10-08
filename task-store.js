@@ -33,26 +33,28 @@ export class TaskStore {
     this.requireDeal(session, task.dealId)
     const destination = this.requireDeal(session, destinationDealId)
     task.dealId = destination.id
+    task.carrierId = destination.carrierId
+    task.ownerId = destination.ownerId
     return { ...task }
   }
 
   listTasks(session) {
     return [...this.tasks.values()]
-      .filter(task => session.carrierIds.includes(task.carrierId))
+      .filter(task => task.tenantId === session.tenantId && session.carrierIds.includes(task.carrierId))
       .map(task => ({ ...task }))
   }
 
   getTask(session, taskId) {
     const task = this.tasks.get(taskId)
-    if (!task) throw new Error('Task not found')
+    if (!task || task.tenantId !== session.tenantId) throw new Error('Task not found')
     return { ...task }
   }
 
   closeDeal(session, dealId) {
     const deal = this.requireDeal(session, dealId)
     deal.status = 'closed'
-    for (const [id, task] of this.tasks) {
-      if (task.dealId === dealId) this.tasks.delete(id)
+    for (const task of this.tasks.values()) {
+      if (task.dealId === dealId) task.status = 'archived'
     }
     return { ...deal }
   }
