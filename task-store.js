@@ -26,4 +26,34 @@ export class TaskStore {
   assignmentsFor(ownerId) {
     return [...this.tasks.values()].filter(task => task.ownerId === ownerId && task.status === 'open')
   }
+
+  moveTask(session, taskId, destinationDealId) {
+    const task = this.tasks.get(taskId)
+    if (!task) throw new Error('Task not found')
+    this.requireDeal(session, task.dealId)
+    const destination = this.requireDeal(session, destinationDealId)
+    task.dealId = destination.id
+    return { ...task }
+  }
+
+  listTasks(session) {
+    return [...this.tasks.values()]
+      .filter(task => session.carrierIds.includes(task.carrierId))
+      .map(task => ({ ...task }))
+  }
+
+  getTask(session, taskId) {
+    const task = this.tasks.get(taskId)
+    if (!task) throw new Error('Task not found')
+    return { ...task }
+  }
+
+  closeDeal(session, dealId) {
+    const deal = this.requireDeal(session, dealId)
+    deal.status = 'closed'
+    for (const [id, task] of this.tasks) {
+      if (task.dealId === dealId) this.tasks.delete(id)
+    }
+    return { ...deal }
+  }
 }
